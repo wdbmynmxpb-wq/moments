@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex"><title>朋友圈</title><style>
+*{box-sizing:border-box;margin:0;padding:0}body{background:#e5e5e5;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;color:#111}
+#app{max-width:430px;margin:0 auto;background:#fff;min-height:100vh;position:relative}
+.bar{position:sticky;top:0;z-index:5;height:44px;display:flex;align-items:center;justify-content:center;background:#ededed;font-weight:600;font-size:16px}
+.bar a{position:absolute;right:12px;font-size:13px;font-weight:400;color:#576b95;text-decoration:none}
+.cover{position:relative;height:320px;margin-bottom:56px}.cover>img{width:100%;height:100%;object-fit:cover;display:block}
+.me{position:absolute;right:14px;bottom:-34px;display:flex;align-items:flex-start}.me span{color:#fff;font-weight:600;font-size:18px;margin:12px 14px 0 0;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.me img{width:70px;height:70px;border-radius:8px;object-fit:cover;background:#ccc}
+.sig{text-align:right;color:#999;font-size:13px;padding:0 16px 18px}
+.post{display:flex;padding:16px 14px;border-top:1px solid #eee}.post>img{width:42px;height:42px;border-radius:5px;object-fit:cover;margin-right:10px;flex:none}
+.body{flex:1;min-width:0}.nm{color:#576b95;font-weight:600;margin-bottom:4px}.tx{white-space:pre-wrap;word-break:break-word;line-height:1.45}
+.g{display:grid;gap:5px;margin-top:8px}.g img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer;background:#eee}
+.g.c3{grid-template-columns:repeat(3,1fr);width:92%}.g.c2{grid-template-columns:repeat(2,1fr);width:62%}.g.one img{aspect-ratio:auto;max-width:65%;max-height:260px;width:auto}
+.loc{color:#576b95;font-size:13px;margin-top:6px}.tm{color:#aaa;font-size:13px;margin-top:6px;display:flex;justify-content:space-between}.tm b{background:#f7f7f7;color:#576b95;padding:0 7px;border-radius:3px;font-weight:700}
+.fb{background:#f7f7f7;margin-top:8px;border-radius:3px;font-size:14px}.lk{padding:5px 8px;color:#576b95}.fb .cm{padding:3px 8px;line-height:1.45}.lk+.cms{border-top:1px solid #e8e8e8}.cms{padding:3px 0}
+.u{color:#576b95;font-weight:600}
+#viewer{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:9}#viewer img{max-width:100%;max-height:100%}
+#gate{display:flex;flex-direction:column;align-items:center;padding:120px 30px}#gate input{width:100%;max-width:280px;font-size:16px;padding:10px;border:1px solid #ccc;border-radius:6px;margin:16px 0 10px}
+#gate button{background:#07c160;color:#fff;border:0;border-radius:6px;padding:10px 40px;font-size:16px}#err{color:#e64340;font-size:14px;height:20px;margin-top:8px}
+.list a{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;color:#111;text-decoration:none}.list img{width:46px;height:46px;border-radius:6px;margin-right:12px;object-fit:cover}
+</style></head><body><div id="app"><div id="gate"><div style="font-size:17px">🔒 请输入访问密码</div><input id="pw" type="password" autocomplete="current-password"><button id="go">进入</button><div id="err"></div></div></div>
+<div id="viewer"><img></div>
+<script>
+const KEY='moments_pw';const $=s=>document.querySelector(s);
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function decrypt(p,pw){const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(p.salt),iterations:p.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(p.iv)},k,b64(p.ct))));}
+function rel(iso){const t=new Date(iso),n=new Date(),d=(n-t)/1000;if(d<60)return'刚刚';if(d<3600)return Math.floor(d/60)+'分钟前';
+const y=new Date(n);y.setHours(0,0,0,0);if(t>=y)return Math.floor(d/3600)+'小时前';const y2=new Date(y-864e5);if(t>=y2)return'昨天';
+return (t.getFullYear()!=n.getFullYear()?t.getFullYear()+'年':'')+(t.getMonth()+1)+'月'+t.getDate()+'日';}
+function grid(imgs){if(!imgs.length)return'';const c=imgs.length==1?'one':imgs.length==4?'c2':'c3';return`<div class="g ${c}">${imgs.map(s=>`<img src="${s}">`).join('')}</div>`;}
+function feed(d){const p=d.profile;document.title=p.name+'的朋友圈';
+let h=`<div class="bar">朋友圈<a href="#" id="lo">退出</a></div><div class="cover"><img src="${p.cover}"><div class="me"><span>${esc(p.name)}</span><img src="${p.avatar}"></div></div><div class="sig">${esc(p.signature)}</div>`;
+for(const x of d.posts){const fb=(x.likes.length?`<div class="lk">♡ ${x.likes.map(esc).join('，')}</div>`:'')+(x.comments.length?`<div class="cms">${x.comments.map(c=>`<div class="cm"><span class="u">${esc(c.from)}</span>${c.to?` 回复 <span class="u">${esc(c.to)}</span>`:''}：${esc(c.text)}</div>`).join('')}</div>`:'');
+h+=`<div class="post"><img src="${p.avatar}"><div class="body"><div class="nm">${esc(p.name)}</div>${x.text?`<div class="tx">${esc(x.text)}</div>`:''}${grid(x.images)}${x.location?`<div class="loc">${esc(x.location)}</div>`:''}<div class="tm"><span>${rel(x.time)}</span><b>··</b></div>${fb?`<div class="fb">${fb}</div>`:''}</div></div>`;}
+return h;}
+function list(d){return`<div class="bar">朋友圈<a href="#" id="lo">退出</a></div><div class="list">${d.characters.map(c=>`<a href="${esc(c.slug)}/"><img src="${c.avatar}"><span>${esc(c.name)}</span></a>`).join('')}</div>`;}
+async function open(pw,auto){$('#err').textContent='';try{const p=await (await fetch('data.enc.json',{cache:'no-cache'})).json();const d=await decrypt(p,pw);
+localStorage.setItem(KEY,pw);$('#app').innerHTML=d.characters?list(d):feed(d);
+$('#lo').onclick=e=>{e.preventDefault();localStorage.removeItem(KEY);location.reload();};
+document.querySelectorAll('.g img').forEach(i=>i.onclick=()=>{$('#viewer img').src=i.src;$('#viewer').style.display='flex';});
+}catch(e){if(auto)localStorage.removeItem(KEY);else $('#err').textContent='密码错误';}}
+$('#viewer').onclick=()=>$('#viewer').style.display='none';
+$('#go').onclick=()=>open($('#pw').value);$('#pw').onkeydown=e=>{if(e.key=='Enter')open($('#pw').value)};
+const s=localStorage.getItem(KEY);if(s)open(s,true);
+</script></body></html>
