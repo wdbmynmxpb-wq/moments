@@ -47,7 +47,7 @@ document.querySelectorAll('.g img').forEach(i=>i.onclick=()=>{$('#viewer img').s
 }catch(e){if(auto)localStorage.removeItem(KEY);else $('#err').textContent='密码错误';}}
 
 const SLUG=location.pathname.replace(/\/(index\.html)?$/,'').split('/').pop();
-function issue(title,body){window.open('https://github.com/wdbmynmxpb-wq/moments/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank');
+function issue(title,body){var u=('https://github.com/wdbmynmxpb-wq/moments/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);var w=window.open(u,'_blank');if(!w)location.href=u;
 const h=$('#hint');h.textContent='已打开 GitHub，请在页面上点击 Submit new issue 提交。对方下次更新朋友圈后才会显示。';h.style.display='block';setTimeout(()=>h.style.display='none',6000);}
 function bind(){document.querySelectorAll('.dots').forEach(b=>b.onclick=e=>{const m=b.previousElementSibling,o=m.hidden;document.querySelectorAll('.menu').forEach(x=>x.hidden=true);m.hidden=!o;e.stopPropagation();});
 document.querySelectorAll('.menu a').forEach(a=>a.onclick=()=>{a.parentNode.hidden=true;const id=a.dataset.id;
