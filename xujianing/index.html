@@ -47,11 +47,13 @@ document.querySelectorAll('.g img').forEach(i=>i.onclick=()=>{$('#viewer img').s
 }catch(e){if(auto)localStorage.removeItem(KEY);else $('#err').textContent='密码错误';}}
 
 const SLUG=location.pathname.replace(/\/(index\.html)?$/,'').split('/').pop();
-function issue(title,body){var u='https://github.com/wdbmynmxpb-wq/moments/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);var w=window.open(u,'_blank');if(!w)location.href=u;
-const h=$('#hint');h.textContent='已打开 GitHub，请在页面上点击 Submit new issue 提交。对方下次更新朋友圈后才会显示。';h.style.display='block';setTimeout(()=>h.style.display='none',6000);}
+const GH='https://github.com/wdbmynmxpb-wq/moments/issues/new?title=';
+function iu(t,b){return GH+encodeURIComponent(t)+'&body='+encodeURIComponent(b);}
+function hint(html){const h=$('#hint');h.innerHTML=html;h.style.display='block';}
 function bind(){document.querySelectorAll('.dots').forEach(b=>b.onclick=e=>{const m=b.previousElementSibling,o=m.hidden;document.querySelectorAll('.menu').forEach(x=>x.hidden=true);m.hidden=!o;e.stopPropagation();});
-document.querySelectorAll('.menu a').forEach(a=>a.onclick=()=>{a.parentNode.hidden=true;const id=a.dataset.id;
-if(a.dataset.a=='like')issue(`like|${SLUG}|${id}`,'赞');else{const t=prompt('评论');if(t&&t.trim())issue(`comment|${SLUG}|${id}`,t.trim());}});}
+document.querySelectorAll('.menu a').forEach(a=>{const id=a.dataset.id;
+if(a.dataset.a=='like'){a.href=iu(`like|${SLUG}|${id}`,'赞');a.target='_blank';a.rel='noopener';a.onclick=()=>{a.parentNode.hidden=true;hint('已打开 GitHub，点绿色 Create 按钮提交。');setTimeout(()=>$('#hint').style.display='none',6000);};}
+else{a.href='#';a.onclick=e=>{e.preventDefault();a.parentNode.hidden=true;const t=prompt('评论');if(t&&t.trim()){hint(`<a href="${iu(`comment|${SLUG}|${id}`,t.trim())}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">点这里去 GitHub 提交评论</a>，然后点绿色 Create 按钮。`);}};}});}
 $('#viewer').onclick=()=>$('#viewer').style.display='none';
 $('#go').onclick=()=>open($('#pw').value);$('#pw').onkeydown=e=>{if(e.key=='Enter')open($('#pw').value)};
 const s=localStorage.getItem(KEY);if(s)open(s,true);
