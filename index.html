@@ -13,6 +13,8 @@
 .g{display:grid;gap:5px;margin-top:8px}.g img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer;background:#eee}
 .g.c3{grid-template-columns:repeat(3,1fr);width:92%}.g.c2{grid-template-columns:repeat(2,1fr);width:62%}.g.one img{aspect-ratio:auto;max-width:65%;max-height:260px;width:auto}
 .loc{color:#576b95;font-size:13px;margin-top:6px}.tm{color:#aaa;font-size:13px;margin-top:6px;display:flex;justify-content:space-between}.tm b{background:#f7f7f7;color:#576b95;padding:0 7px;border-radius:3px;font-weight:700}
+.act{position:relative;display:flex;align-items:center}.dots{cursor:pointer}.menu{position:absolute;right:34px;background:#4c4c4c;border-radius:4px;display:flex;white-space:nowrap}.menu[hidden]{display:none}.menu a{color:#fff;padding:7px 14px;font-size:14px;cursor:pointer}
+#hint{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;font-size:13px;padding:10px 14px;border-radius:6px;max-width:340px;display:none;z-index:8;line-height:1.5}
 .fb{background:#f7f7f7;margin-top:8px;border-radius:3px;font-size:14px}.lk{padding:5px 8px;color:#576b95}.fb .cm{padding:3px 8px;line-height:1.45}.lk+.cms{border-top:1px solid #e8e8e8}.cms{padding:3px 0}
 .u{color:#576b95;font-weight:600}
 #viewer{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:9}#viewer img{max-width:100%;max-height:100%}
@@ -20,7 +22,7 @@
 #gate button{background:#07c160;color:#fff;border:0;border-radius:6px;padding:10px 40px;font-size:16px}#err{color:#e64340;font-size:14px;height:20px;margin-top:8px}
 .list a{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;color:#111;text-decoration:none}.list img{width:46px;height:46px;border-radius:6px;margin-right:12px;object-fit:cover}
 </style></head><body><div id="app"><div id="gate"><div style="font-size:17px">🔒 请输入访问密码</div><input id="pw" type="password" autocomplete="current-password"><button id="go">进入</button><div id="err"></div></div></div>
-<div id="viewer"><img></div>
+<div id="hint"></div><div id="viewer"><img></div>
 <script>
 const KEY='moments_pw';const $=s=>document.querySelector(s);
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -35,14 +37,21 @@ function grid(imgs){if(!imgs.length)return'';const c=imgs.length==1?'one':imgs.l
 function feed(d){const p=d.profile;document.title=p.name+'的朋友圈';
 let h=`<div class="bar">朋友圈<a href="#" id="lo">退出</a></div><div class="cover"><img src="${p.cover}"><div class="me"><span>${esc(p.name)}</span><img src="${p.avatar}"></div></div><div class="sig">${esc(p.signature)}</div>`;
 for(const x of d.posts){const fb=(x.likes.length?`<div class="lk">♡ ${x.likes.map(esc).join('，')}</div>`:'')+(x.comments.length?`<div class="cms">${x.comments.map(c=>`<div class="cm"><span class="u">${esc(c.from)}</span>${c.to?` 回复 <span class="u">${esc(c.to)}</span>`:''}：${esc(c.text)}</div>`).join('')}</div>`:'');
-h+=`<div class="post"><img src="${p.avatar}"><div class="body"><div class="nm">${esc(p.name)}</div>${x.text?`<div class="tx">${esc(x.text)}</div>`:''}${grid(x.images)}${x.location?`<div class="loc">${esc(x.location)}</div>`:''}<div class="tm"><span>${rel(x.time)}</span><b>··</b></div>${fb?`<div class="fb">${fb}</div>`:''}</div></div>`;}
+h+=`<div class="post"><img src="${p.avatar}"><div class="body"><div class="nm">${esc(p.name)}</div>${x.text?`<div class="tx">${esc(x.text)}</div>`:''}${grid(x.images)}${x.location?`<div class="loc">${esc(x.location)}</div>`:''}<div class="tm"><span>${rel(x.time)}</span><span class="act"><span class="menu" hidden><a data-a="like" data-id="${esc(x.id)}">♡ 赞</a><a data-a="comment" data-id="${esc(x.id)}">💬 评论</a></span><b class="dots">··</b></span></div>${fb?`<div class="fb">${fb}</div>`:''}</div></div>`;}
 return h;}
 function list(d){return`<div class="bar">朋友圈<a href="#" id="lo">退出</a></div><div class="list">${d.characters.map(c=>`<a href="${esc(c.slug)}/"><img src="${c.avatar}"><span>${esc(c.name)}</span></a>`).join('')}</div>`;}
 async function open(pw,auto){$('#err').textContent='';try{const p=await (await fetch('data.enc.json',{cache:'no-cache'})).json();const d=await decrypt(p,pw);
 localStorage.setItem(KEY,pw);$('#app').innerHTML=d.characters?list(d):feed(d);
-$('#lo').onclick=e=>{e.preventDefault();localStorage.removeItem(KEY);location.reload();};
+if(!d.characters)bind();$('#lo').onclick=e=>{e.preventDefault();localStorage.removeItem(KEY);location.reload();};
 document.querySelectorAll('.g img').forEach(i=>i.onclick=()=>{$('#viewer img').src=i.src;$('#viewer').style.display='flex';});
 }catch(e){if(auto)localStorage.removeItem(KEY);else $('#err').textContent='密码错误';}}
+
+const SLUG=location.pathname.replace(/\/(index\.html)?$/,'').split('/').pop();
+function issue(title,body){window.open('https://github.com/wdbmynmxpb-wq/moments/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank');
+const h=$('#hint');h.textContent='已打开 GitHub，请在页面上点击 Submit new issue 提交。对方下次更新朋友圈后才会显示。';h.style.display='block';setTimeout(()=>h.style.display='none',6000);}
+function bind(){document.querySelectorAll('.dots').forEach(b=>b.onclick=e=>{const m=b.previousElementSibling,o=m.hidden;document.querySelectorAll('.menu').forEach(x=>x.hidden=true);m.hidden=!o;e.stopPropagation();});
+document.querySelectorAll('.menu a').forEach(a=>a.onclick=()=>{a.parentNode.hidden=true;const id=a.dataset.id;
+if(a.dataset.a=='like')issue(`like|${SLUG}|${id}`,'赞');else{const t=prompt('评论');if(t&&t.trim())issue(`comment|${SLUG}|${id}`,t.trim());}});}
 $('#viewer').onclick=()=>$('#viewer').style.display='none';
 $('#go').onclick=()=>open($('#pw').value);$('#pw').onkeydown=e=>{if(e.key=='Enter')open($('#pw').value)};
 const s=localStorage.getItem(KEY);if(s)open(s,true);
